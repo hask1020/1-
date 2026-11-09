@@ -1,0 +1,64 @@
+local tickCounter = 0
+local CHECK_INTERVAL_TICKS = 3
+
+local function updatePlayerStats(player)
+    if not player then return end
+    
+    local currentHp = 0
+    if pcall(function() currentHp = player.getHp and player:getHp() or player:getHP() end) then
+        if not currentHp or currentHp <= 0 then return end
+    else
+        return
+    end
+
+    local maxHp = 1
+    pcall(function() maxHp = player.getMaxHp and player:getMaxHp() or player:getMaxHP() end)
+    if not maxHp or maxHp <= 0 then return end
+    
+    local hpPercent = currentHp / maxHp
+
+    local targetScale = 0.5 + (hpPercent * 1.1)
+    local targetSpeed = 1.6 - (hpPercent * 1.0)
+    local targetDamageModifier = 0.5 + (hpPercent * 1.3)
+
+    pcall(function()
+        if player.setScale then player:setScale(targetScale) 
+        elseif player.changeScale then player:changeScale(targetScale) end
+    end)
+
+    pcall(function()
+        if player.setSpeedModifier then player:setSpeedModifier(targetSpeed)
+        elseif player.setSpeed then player:setSpeed(targetSpeed) end
+    end)
+
+    pcall(function()
+        if player.setDamageModifier then player:setDamageModifier(targetDamageModifier)
+        elseif player.setDamageMultiplier then player:setDamageMultiplier(targetDamageModifier)
+        elseif player.setDamageScale then player:setDamageScale(targetDamageModifier) end
+    end)
+end
+
+function tick()
+    tickCounter = tickCounter + 1
+    
+    if tickCounter < CHECK_INTERVAL_TICKS then 
+        return 
+    end
+    
+    tickCounter = 0
+    
+    if not server or not server.getBattle then return end
+    local battle = server:getBattle()
+    if not battle then return end
+    
+    local players = battle:getPlayers()
+    if not players then return end
+    
+    pcall(function()
+        for _, player in pairs(players) do
+            if player then
+                updatePlayerStats(player)
+            end
+        end
+    end)
+end
